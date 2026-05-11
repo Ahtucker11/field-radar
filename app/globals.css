@@ -1,3 +1,54 @@
 @import "tailwindcss";
 
-body { font-family: system-ui, sans-serif; }
+:root {
+  --green: #1e4532;
+  --green-light: #2a5740;
+  --green-card: #356649;
+  --green-pale: #e8f0eb;
+  --bg: #ede8dd;
+  --bg-warm: #e5e0d4;
+  --bg-aged: #e2dccf;
+  --cream: #f1ece1;
+  --orange: #c45a0e;
+  --orange-light: #e8723a;
+  --text: #1a1f1a;
+  --text-soft: #4a4f4a;
+  --text-muted: #5f645f;
+  --text-faint: #a5a9a5;
+  --border: rgba(26, 31, 26, 0.08);
+  --border-soft: rgba(26, 31, 26, 0.12);
+  --border-strong: rgba(26, 31, 26, 0.22);
+
+  --shadow-card: 4px 4px 0 var(--green);
+
+  --r-sm: 4px;
+  --r-md: 6px;
+  --r-lg: 10px;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-cream: var(--cream);
+  --color-green: var(--green);
+  --color-green-light: var(--green-light);
+  --color-green-pale: var(--green-pale);
+  --color-orange: var(--orange);
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-text-faint: var(--text-faint);
+  --color-border: var(--border);
+  --color-border-soft: var(--border-soft);
+}
+
+body {
+  font-family: "Manrope", system-ui, sans-serif;
+  background-color: var(--bg);
+  background-image: radial-gradient(circle, rgba(26, 31, 26, 0.08) 1px, transparent 1px);
+  background-size: 20px 20px;
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  padding: 24px 14px 60px;
+}
+
+.display { font-family: "Playfair Display", serif; }
+.mono { font-family: "JetBrains Mono", monospace; }
