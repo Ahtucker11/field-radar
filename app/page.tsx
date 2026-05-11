@@ -25,10 +25,19 @@ export default function HomePage() {
   const [adminKey, setAdminKey] = useState<string | null>(null);
   const [modalEvent, setModalEvent] = useState<EventDb | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     const stored = sessionStorage.getItem(ADMIN_KEY_STORAGE);
     if (stored) setAdminKey(stored);
+  }, []);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 640px)");
+    setIsMobile(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
   }, []);
 
   const refresh = useCallback(async () => {
@@ -105,6 +114,7 @@ export default function HomePage() {
       <Calendar
         events={events}
         filters={filters}
+        isMobile={isMobile}
         onEventClick={(e) => {
           setModalEvent(e);
           setModalOpen(true);

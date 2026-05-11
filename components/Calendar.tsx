@@ -1,6 +1,6 @@
 "use client";
 
-import type { EventDb, Tier, Location, Source } from "@/lib/types";
+import type { EventDb, Tier, Location } from "@/lib/types";
 import type { Filters } from "@/components/FilterBar";
 
 const TIER_BG: Record<Tier, string> = {
@@ -21,6 +21,25 @@ type Props = {
   events: EventDb[];
   filters: Filters;
   onEventClick: (event: EventDb) => void;
+  isMobile?: boolean;
+};
+
+const DAY_NAMES_DESKTOP = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const DAY_NAMES_MOBILE = ["Mon", "Tue", "Wed", "Thu", "Fri"];
+const VISIBLE_DAYS_DESKTOP = [0, 1, 2, 3, 4, 5, 6];
+const VISIBLE_DAYS_MOBILE = [1, 2, 3, 4, 5];
+
+type WeekCell =
+  | { type: "empty" }
+  | { type: "day"; date: Date; dayNum: number; dow: number };
+
+type Week = { cells: WeekCell[]; id: string };
+
+type LaidOutEvent = {
+  event: EventDb;
+  startCol: number;
+  span: number;
+  lane: number;
 };
 
 function parseDate(s: string): Date {
@@ -30,12 +49,6 @@ function parseDate(s: string): Date {
 
 function isSameDay(a: Date, b: Date): boolean {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
-}
-
-function dayInEvent(day: Date, ev: EventDb): boolean {
-  const start = parseDate(ev.start_date);
-  const end = ev.end_date ? parseDate(ev.end_date) : start;
-  return day >= start && day <= end;
 }
 
 function isVisible(ev: EventDb, filters: Filters, today: Date): boolean {
@@ -49,7 +62,104 @@ function isVisible(ev: EventDb, filters: Filters, today: Date): boolean {
   return true;
 }
 
-export function Calendar({ events, filters, onEventClick }: Props) {
+function buildWeeks(year: number, month: number, visibleDays: number[], isMobile: boolean): Week[] {
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  const numCols = visibleDays.length;
+  const startOfWeek = isMobile ? 1 : 0; // Mon=1 for mobile, Sun=0 for desktop
+
+  const weeks: Week[] = [];
+  let currentWeek: WeekCell[] = [];
+  let weekIdx = 0;
+
+  const offsetToStart = (firstDay.getDay() - startOfWeek + 7) % 7;
+
+  const cursor = new Date(firstDay);
+  cursor.setDate(cursor.getDate() - offsetToStart);
+
+  // Hard safety cap (max ~42 calendar days walked)
+  let safety = 0;
+  while ((cursor <= lastDay || currentWeek.length > 0) && safety < 80) {
+    safety += 1;
+    const dow = cursor.getDay();
+    if (visibleDays.includes(dow)) {
+      if (cursor < firstDay || cursor > lastDay) {
+        currentWeek.push({ type: "empty" });
+      } else {
+        currentWeek.push({
+          type: "day",
+          date: new Date(cursor),
+          dayNum: cursor.getDate(),
+          dow,
+        });
+      }
+      if (currentWeek.length === numCols) {
+        weeks.push({ cells: currentWeek, id: `${year}-${month}-w${weekIdx++}` });
+        currentWeek = [];
+        // If cursor is past lastDay, we're done — no more weeks to start
+        if (cursor > lastDay) break;
+      }
+    }
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  if (currentWeek.length > 0) {
+    while (currentWeek.length < numCols) currentWeek.push({ type: "empty" });
+    weeks.push({ cells: currentWeek, id: `${year}-${month}-w${weekIdx++}` });
+  }
+
+  return weeks;
+}
+
+function placeEventInWeek(event: EventDb, week: Week): { startCol: number; span: number } | null {
+  const evStart = parseDate(event.start_date);
+  const evEnd = event.end_date ? parseDate(event.end_date) : evStart;
+
+  let startIdx = -1;
+  let endIdx = -1;
+  for (let i = 0; i < week.cells.length; i++) {
+    const cell = week.cells[i];
+    if (cell.type !== "day") continue;
+    if (cell.date >= evStart && cell.date <= evEnd) {
+      if (startIdx === -1) startIdx = i;
+      endIdx = i;
+    }
+  }
+
+  if (startIdx === -1) return null;
+  return { startCol: startIdx + 1, span: endIdx - startIdx + 1 };
+}
+
+function layoutWeek(events: EventDb[], week: Week): LaidOutEvent[] {
+  const placements = events
+    .map((e) => ({ event: e, place: placeEventInWeek(e, week) }))
+    .filter((p): p is { event: EventDb; place: { startCol: number; span: number } } => p.place !== null);
+
+  // Sort by startCol ascending; tie-break by longer span first so big events sit on lower lanes
+  placements.sort((a, b) => {
+    if (a.place.startCol !== b.place.startCol) return a.place.startCol - b.place.startCol;
+    return b.place.span - a.place.span;
+  });
+
+  const lanes: number[][] = []; // each lane holds endCols claimed so far
+  const result: LaidOutEvent[] = [];
+
+  for (const { event, place } of placements) {
+    const startCol = place.startCol;
+    const endCol = startCol + place.span - 1;
+    let laneIdx = lanes.findIndex((lane) => lane.every((c) => c < startCol));
+    if (laneIdx === -1) {
+      laneIdx = lanes.length;
+      lanes.push([]);
+    }
+    lanes[laneIdx].push(endCol);
+    result.push({ event, startCol, span: place.span, lane: laneIdx });
+  }
+
+  return result;
+}
+
+export function Calendar({ events, filters, onEventClick, isMobile = false }: Props) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -63,7 +173,7 @@ export function Calendar({ events, filters, onEventClick }: Props) {
   const max = new Date(Math.max(...allDates.map((d) => d.getTime())));
 
   const months: { year: number; month: number }[] = [];
-  let cursor = new Date(min.getFullYear(), min.getMonth(), 1);
+  const cursor = new Date(min.getFullYear(), min.getMonth(), 1);
   const last = new Date(max.getFullYear(), max.getMonth(), 1);
   while (cursor <= last) {
     months.push({ year: cursor.getFullYear(), month: cursor.getMonth() });
@@ -81,6 +191,7 @@ export function Calendar({ events, filters, onEventClick }: Props) {
           filters={filters}
           today={today}
           onEventClick={onEventClick}
+          isMobile={isMobile}
         />
       ))}
     </>
@@ -94,6 +205,7 @@ function Month({
   filters,
   today,
   onEventClick,
+  isMobile,
 }: {
   year: number;
   month: number;
@@ -101,76 +213,17 @@ function Month({
   filters: Filters;
   today: Date;
   onEventClick: (event: EventDb) => void;
+  isMobile: boolean;
 }) {
   const firstDay = new Date(year, month, 1);
-  const lastDay = new Date(year, month + 1, 0);
-  const firstDow = firstDay.getDay();
   const monthName = firstDay.toLocaleDateString("en-US", { month: "long" });
 
-  const cells: React.ReactNode[] = [];
-  for (let i = 0; i < firstDow; i++) {
-    cells.push(<div key={`e${i}`} style={{ ...dayStyle, background: "#f5f1e6" }} />);
-  }
-  for (let d = 1; d <= lastDay.getDate(); d++) {
-    const day = new Date(year, month, d);
-    const isToday = isSameDay(day, today);
-    const isPast = day < today && !isToday;
-    const dayEvents = events.filter((e) => dayInEvent(day, e) && isVisible(e, filters, today));
-    cells.push(
-      <div
-        key={d}
-        className="fr-day"
-        style={{
-          ...dayStyle,
-          background: isToday ? "#fff4e6" : day.getDay() === 0 || day.getDay() === 6 ? "#fbf8f0" : "#fff",
-          boxShadow: isToday ? "inset 0 0 0 3px var(--orange)" : undefined,
-          opacity: isPast ? 0.55 : 1,
-        }}
-      >
-        <div
-          className="mono fr-day-num"
-          style={{
-            fontSize: 11,
-            color: isToday ? "#fff" : "var(--text-muted)",
-            background: isToday ? "var(--orange)" : "transparent",
-            display: "inline-block",
-            padding: isToday ? "2px 6px" : 0,
-            borderRadius: 3,
-            fontWeight: isToday ? 700 : 400,
-            marginBottom: 4,
-          }}
-        >
-          {d}
-        </div>
-        {dayEvents.map((ev) => (
-          <button
-            key={ev.id}
-            onClick={() => onEventClick(ev)}
-            title={`${ev.name}${ev.notes ? "\n\n" + ev.notes : ""}`}
-            className="fr-event-pill"
-            style={{
-              fontSize: 10,
-              fontWeight: 600,
-              padding: "3px 6px",
-              borderRadius: 3,
-              marginBottom: 2,
-              color: "#fff",
-              background: TIER_BG[ev.tier],
-              border: "none",
-              borderLeft: `3px ${ev.source === "scout" && !ev.confirmed ? "dashed" : "solid"} ${LOC_BORDER[ev.location]}`,
-              cursor: "pointer",
-              textAlign: "left",
-              width: "100%",
-              lineHeight: 1.25,
-            }}
-          >
-            {ev.source === "scout" && !ev.confirmed ? "~ " : ""}
-            {ev.label ?? ev.name}
-          </button>
-        ))}
-      </div>,
-    );
-  }
+  const visibleDays = isMobile ? VISIBLE_DAYS_MOBILE : VISIBLE_DAYS_DESKTOP;
+  const dayNames = isMobile ? DAY_NAMES_MOBILE : DAY_NAMES_DESKTOP;
+  const numCols = visibleDays.length;
+
+  const weeks = buildWeeks(year, month, visibleDays, isMobile);
+  const visibleEvents = events.filter((e) => isVisible(e, filters, today));
 
   return (
     <div
@@ -201,16 +254,18 @@ function Month({
           {year}
         </span>
       </div>
+
+      {/* Day-name header row */}
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(7, 1fr)",
+          gridTemplateColumns: `repeat(${numCols}, 1fr)`,
           gap: 1,
           background: "var(--green)",
           borderTop: "1px solid var(--green)",
         }}
       >
-        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
+        {dayNames.map((d, i) => (
           <div
             key={d}
             className="mono fr-day-name"
@@ -222,24 +277,181 @@ function Month({
               textTransform: "uppercase",
               letterSpacing: 1,
               color: "var(--text-muted)",
+              gridColumn: i + 1,
             }}
           >
             {d}
           </div>
         ))}
-        {cells}
       </div>
+
+      {/* Week rows */}
+      {weeks.map((week) => (
+        <WeekRow
+          key={week.id}
+          week={week}
+          numCols={numCols}
+          events={visibleEvents}
+          today={today}
+          onEventClick={onEventClick}
+        />
+      ))}
     </div>
   );
 }
 
-const dayStyle: React.CSSProperties = {
-  minHeight: 100,
-  padding: "6px 5px",
-  display: "flex",
-  flexDirection: "column",
-  background: "#fff",
-};
+function WeekRow({
+  week,
+  numCols,
+  events,
+  today,
+  onEventClick,
+}: {
+  week: Week;
+  numCols: number;
+  events: EventDb[];
+  today: Date;
+  onEventClick: (event: EventDb) => void;
+}) {
+  const laidOut = layoutWeek(events, week);
+  const laneCount = laidOut.reduce((max, le) => Math.max(max, le.lane + 1), 0);
+  // Reserve at least 2 lanes worth of body height so empty weeks don't collapse
+  const minLanes = Math.max(laneCount, 2);
+
+  return (
+    <div>
+      {/* Day-number strip */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: `repeat(${numCols}, 1fr)`,
+          gap: 1,
+          background: "var(--green)",
+          borderTop: "1px solid var(--green)",
+        }}
+      >
+        {week.cells.map((cell, i) => {
+          const isToday = cell.type === "day" && isSameDay(cell.date, today);
+          const isPast = cell.type === "day" && cell.date < today && !isToday;
+          const isWeekend = cell.type === "day" && (cell.dow === 0 || cell.dow === 6);
+          const bg =
+            cell.type === "empty"
+              ? "#f5f1e6"
+              : isToday
+                ? "#fff4e6"
+                : isWeekend
+                  ? "#fbf8f0"
+                  : "#fff";
+          return (
+            <div
+              key={`hdr-${i}`}
+              className="fr-day"
+              style={{
+                gridColumn: i + 1,
+                background: bg,
+                padding: "6px 5px",
+                minHeight: 28,
+                opacity: isPast ? 0.55 : 1,
+              }}
+            >
+              {cell.type === "day" && (
+                <div
+                  className="mono fr-day-num"
+                  style={{
+                    fontSize: 11,
+                    color: isToday ? "#fff" : "var(--text-muted)",
+                    background: isToday ? "var(--orange)" : "transparent",
+                    display: "inline-block",
+                    padding: isToday ? "2px 6px" : 0,
+                    borderRadius: 3,
+                    fontWeight: isToday ? 700 : 400,
+                  }}
+                >
+                  {cell.dayNum}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Event body — N-col grid with lanes */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: `repeat(${numCols}, 1fr)`,
+          gridAutoRows: "20px",
+          gridTemplateRows: `repeat(${minLanes}, 20px)`,
+          columnGap: 1,
+          rowGap: 2,
+          background: "var(--green)",
+          padding: "2px 0 6px 0",
+          position: "relative",
+        }}
+      >
+        {/* Background cells span all lane rows for today-highlight / weekend tint */}
+        {week.cells.map((cell, i) => {
+          const isToday = cell.type === "day" && isSameDay(cell.date, today);
+          const isPast = cell.type === "day" && cell.date < today && !isToday;
+          const isWeekend = cell.type === "day" && (cell.dow === 0 || cell.dow === 6);
+          const bg =
+            cell.type === "empty"
+              ? "#f5f1e6"
+              : isToday
+                ? "#fff4e6"
+                : isWeekend
+                  ? "#fbf8f0"
+                  : "#fff";
+          return (
+            <div
+              key={`bg-${i}`}
+              style={{
+                gridColumn: i + 1,
+                gridRow: `1 / span ${minLanes}`,
+                background: bg,
+                boxShadow: isToday ? "inset 0 0 0 3px var(--orange)" : undefined,
+                opacity: isPast ? 0.55 : 1,
+              }}
+            />
+          );
+        })}
+
+        {/* Event pills */}
+        {laidOut.map((le) => (
+          <button
+            key={`${le.event.id}-${week.id}`}
+            onClick={() => onEventClick(le.event)}
+            title={`${le.event.name}${le.event.notes ? "\n\n" + le.event.notes : ""}`}
+            className="fr-event-pill"
+            style={{
+              gridColumn: `${le.startCol} / span ${le.span}`,
+              gridRow: le.lane + 1,
+              margin: "0 3px",
+              fontSize: 10,
+              fontWeight: 600,
+              padding: "2px 6px",
+              borderRadius: 3,
+              color: "#fff",
+              background: TIER_BG[le.event.tier],
+              border: "none",
+              borderLeft: `3px ${le.event.source === "scout" && !le.event.confirmed ? "dashed" : "solid"} ${LOC_BORDER[le.event.location]}`,
+              cursor: "pointer",
+              textAlign: "left",
+              lineHeight: 1.25,
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              zIndex: 1,
+            }}
+          >
+            {le.event.source === "scout" && !le.event.confirmed ? "~ " : ""}
+            {le.event.label ?? le.event.name}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function Empty({ children }: { children: React.ReactNode }) {
   return (
