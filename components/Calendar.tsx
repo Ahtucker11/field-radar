@@ -318,9 +318,11 @@ function WeekRow({
 
   // Single grid per week: row 1 = day numbers, rows 2..N+1 = event lanes, row N+2 = small bottom pad.
   // Empty weeks collapse to just the day-number strip.
+  const LANE_HEIGHT = 22;
+  const LANE_GAP = 3;
   const gridRows =
     laneCount > 0
-      ? `28px repeat(${laneCount}, 20px) 6px`
+      ? `28px repeat(${laneCount}, ${LANE_HEIGHT}px) 6px`
       : `28px`;
 
   return (
@@ -330,7 +332,7 @@ function WeekRow({
         gridTemplateColumns: `repeat(${numCols}, 1fr)`,
         gridTemplateRows: gridRows,
         columnGap: 1,
-        rowGap: 0,
+        rowGap: LANE_GAP,
         background: "var(--green)",
         borderTop: "1px solid var(--green)",
       }}
