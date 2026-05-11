@@ -1,9 +1,9 @@
-# Midwest Events — Design Doc
+# Field Radar — Design Doc
 
 **Status:** Draft for implementation
 **Date:** 2026-05-11
 **Owner:** Adam Tucker
-**Working name:** `midwest-events` (open to rename: `field-radar`, `ecosystem-radar`, etc.)
+**Name:** `field-radar`
 
 ## Purpose
 
@@ -24,9 +24,9 @@ A weekly scout finds new events automatically; manual edits remain first-class.
 ## Architecture
 
 **Stack**
-- Next.js 16 (App Router) on Vercel, default URL (`midwest-events.vercel.app` or whatever Vercel assigns)
+- Next.js 16 (App Router) on Vercel, default URL (`field-radar.vercel.app` or whatever Vercel assigns)
 - Tailwind v4 inline-theme, scrappy-website tokens
-- Supabase Postgres in a new project `scrappyhat-events`
+- Supabase Postgres in a new project `scrappyhat-radar`
 - agent-runner script invoking Claude Sonnet 4.6 with `web_search` server-side tool
 - Paperclip routine for weekly cadence
 
@@ -35,10 +35,10 @@ A weekly scout finds new events automatically; manual edits remain first-class.
 - Admin writes (Server Actions / API routes) gated by `ADMIN_KEY` env var. UI prompts for the key once, caches in sessionStorage. Scout sends it as `Authorization: Bearer`.
 - No login, no auth UI, no per-user state.
 
-**Repo: `Ahtucker11/midwest-events`**
+**Repo: `Ahtucker11/field-radar`**
 
 ```
-midwest-events/
+field-radar/
 ├── app/
 │   ├── page.tsx
 │   ├── layout.tsx
@@ -76,7 +76,7 @@ midwest-events/
 
 **Vault hook**
 
-- `~/vaults/ScrappyHat/projects/midwest-events.md` — project context (status, summary, links). Linked from `_system/_index.md`.
+- `~/vaults/ScrappyHat/projects/field-radar.md` — project context (status, summary, links). Linked from `_system/_index.md`.
 - `~/vaults/ScrappyHat/execution-logs/event-scout-YYYY-MM-DD.md` per scout run.
 
 ## Data model
@@ -252,11 +252,11 @@ Minimum that protects production behavior.
 
 ## Open questions resolved in brainstorming
 
-- **Working name:** `midwest-events` for file paths; can rename before deployment if a better name emerges
+- **Name:** `field-radar`
 - **Access:** public read, admin write via `ADMIN_KEY`
 - **Lifecycle:** scout-found events auto-publish with badge; manual confirm/dismiss actions
 - **Scout method:** Claude + native `web_search`, not custom scrapers
 - **Database:** new Supabase project, not shared with Intel Engine
 - **Cadence:** weekly Sunday 6am via Paperclip routine, plus ad-hoc trigger
 - **Brand:** retrofit to scrappy-website tokens
-- **Repo:** standalone `Ahtucker11/midwest-events`, Vercel default URL
+- **Repo:** standalone `Ahtucker11/field-radar`, Vercel default URL
