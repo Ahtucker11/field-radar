@@ -4,6 +4,10 @@ Shared Midwest events calendar for Scrappy Hat (Adam + Jake). Weekly Claude-powe
 
 See `docs/superpowers/specs/2026-05-11-field-radar-design.md` for the design.
 
+## Production
+
+https://field-radar.vercel.app
+
 ## Local dev
 
 ```bash
