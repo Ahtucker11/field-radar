@@ -345,9 +345,11 @@ function WeekRow({
             ? "#f5f1e6"
             : isToday
               ? "#fff4e6"
-              : isWeekend
-                ? "#fbf8f0"
-                : "#fff";
+              : isPast
+                ? "var(--bg-aged)"
+                : isWeekend
+                  ? "#fbf8f0"
+                  : "#fff";
         return (
           <div
             key={`bg-${i}`}
@@ -356,7 +358,6 @@ function WeekRow({
               gridRow: "1 / -1",
               background: bg,
               boxShadow: isToday ? "inset 0 0 0 3px var(--orange)" : undefined,
-              opacity: isPast ? 0.55 : 1,
             }}
           />
         );
@@ -395,38 +396,43 @@ function WeekRow({
       ))}
 
       {/* Event pills — rows 2..N+1 */}
-      {laidOut.map((le) => (
-        <button
-          key={`${le.event.id}-${week.id}`}
-          onClick={() => onEventClick(le.event)}
-          title={`${le.event.name}${le.event.notes ? "\n\n" + le.event.notes : ""}`}
-          className="fr-event-pill"
-          style={{
-            gridColumn: `${le.startCol} / span ${le.span}`,
-            gridRow: le.lane + 2,
-            margin: "0 3px",
-            fontSize: 10,
-            fontWeight: 600,
-            padding: "2px 6px",
-            borderRadius: 3,
-            color: "#fff",
-            background: TIER_BG[le.event.tier],
-            border: "none",
-            borderLeft: `3px ${le.event.source === "scout" && !le.event.confirmed ? "dashed" : "solid"} ${LOC_BORDER[le.event.location]}`,
-            cursor: "pointer",
-            textAlign: "left",
-            lineHeight: 1.25,
-            whiteSpace: "nowrap",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            position: "relative",
-            zIndex: 2,
-          }}
-        >
-          {le.event.source === "scout" && !le.event.confirmed ? "~ " : ""}
-          {le.event.label ?? le.event.name}
-        </button>
-      ))}
+      {laidOut.map((le) => {
+        const evEnd = parseDate(le.event.end_date ?? le.event.start_date);
+        const isPastEvent = evEnd < today && !isSameDay(evEnd, today);
+        return (
+          <button
+            key={`${le.event.id}-${week.id}`}
+            onClick={() => onEventClick(le.event)}
+            title={`${le.event.name}${le.event.notes ? "\n\n" + le.event.notes : ""}`}
+            className="fr-event-pill"
+            style={{
+              gridColumn: `${le.startCol} / span ${le.span}`,
+              gridRow: le.lane + 2,
+              margin: "0 3px",
+              fontSize: 10,
+              fontWeight: 600,
+              padding: "2px 6px",
+              borderRadius: 3,
+              color: "#fff",
+              background: TIER_BG[le.event.tier],
+              border: "none",
+              borderLeft: `3px ${le.event.source === "scout" && !le.event.confirmed ? "dashed" : "solid"} ${LOC_BORDER[le.event.location]}`,
+              cursor: "pointer",
+              textAlign: "left",
+              lineHeight: 1.25,
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              position: "relative",
+              zIndex: 2,
+              opacity: isPastEvent ? 0.55 : 1,
+            }}
+          >
+            {le.event.source === "scout" && !le.event.confirmed ? "~ " : ""}
+            {le.event.label ?? le.event.name}
+          </button>
+        );
+      })}
     </div>
   );
 }
