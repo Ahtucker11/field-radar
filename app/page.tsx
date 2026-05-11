@@ -79,11 +79,11 @@ export default function HomePage() {
         }}
       >
         <div>
-          <h1 className="display" style={{ fontSize: 30, fontWeight: 700, letterSpacing: "-0.5px" }}>
+          <h1 className="display fr-h1" style={{ fontSize: 30, fontWeight: 700, letterSpacing: "-0.5px" }}>
             Field Radar
           </h1>
           <div
-            className="mono"
+            className="mono fr-subtitle"
             style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 1 }}
           >
             Midwest events // Chicago · Cincinnati · Columbus · Indianapolis

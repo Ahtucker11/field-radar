@@ -38,6 +38,7 @@ function Pill({
   return (
     <button
       onClick={onClick}
+      className="fr-filter-pill"
       style={{
         fontSize: 12,
         fontWeight: 600,
@@ -121,7 +122,7 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
   return (
     <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
       <span
-        className="mono"
+        className="mono fr-filter-label"
         style={{
           fontSize: 10,
           textTransform: "uppercase",

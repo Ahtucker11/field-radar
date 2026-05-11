@@ -52,3 +52,28 @@ body {
 
 .display { font-family: "Playfair Display", serif; }
 .mono { font-family: "JetBrains Mono", monospace; }
+
+/* Mobile pass — narrow screens (<= 640px). Inline styles in components
+   beat external rules without !important; that's the trade-off for v1. */
+@media (max-width: 640px) {
+  body { padding: 16px 10px 40px !important; }
+
+  .fr-h1 { font-size: 22px !important; }
+  .fr-subtitle { font-size: 10px !important; }
+
+  .fr-month-header { font-size: 17px !important; padding: 10px 14px !important; }
+  .fr-day { min-height: 76px !important; padding: 4px 3px !important; }
+  .fr-day-name { font-size: 9px !important; padding: 6px 4px !important; }
+  .fr-day-num { font-size: 10px !important; }
+  .fr-event-pill { font-size: 9px !important; padding: 2px 4px !important; line-height: 1.2 !important; }
+
+  .fr-modal-row { grid-template-columns: 1fr !important; }
+  .fr-modal { padding: 18px 18px !important; }
+
+  .fr-filter-label { min-width: auto !important; font-size: 9px !important; }
+  .fr-filter-pill { font-size: 11px !important; padding: 5px 10px !important; }
+
+  .fr-banner-detail { font-size: 12px !important; }
+
+  .fr-admin-btn { font-size: 9px !important; padding: 6px 10px !important; }
+}

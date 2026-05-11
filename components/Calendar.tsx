@@ -119,6 +119,7 @@ function Month({
     cells.push(
       <div
         key={d}
+        className="fr-day"
         style={{
           ...dayStyle,
           background: isToday ? "#fff4e6" : day.getDay() === 0 || day.getDay() === 6 ? "#fbf8f0" : "#fff",
@@ -127,7 +128,7 @@ function Month({
         }}
       >
         <div
-          className="mono"
+          className="mono fr-day-num"
           style={{
             fontSize: 11,
             color: isToday ? "#fff" : "var(--text-muted)",
@@ -146,6 +147,7 @@ function Month({
             key={ev.id}
             onClick={() => onEventClick(ev)}
             title={`${ev.name}${ev.notes ? "\n\n" + ev.notes : ""}`}
+            className="fr-event-pill"
             style={{
               fontSize: 10,
               fontWeight: 600,
@@ -182,7 +184,7 @@ function Month({
       }}
     >
       <div
-        className="display"
+        className="display fr-month-header"
         style={{
           background: "var(--green)",
           color: "var(--cream)",
@@ -211,7 +213,7 @@ function Month({
         {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
           <div
             key={d}
-            className="mono"
+            className="mono fr-day-name"
             style={{
               background: "#ede8da",
               padding: "8px 10px",

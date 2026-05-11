@@ -66,7 +66,7 @@ export function TodayBanner({ events, unconfirmedCount, lastScoutAt }: Props) {
       <div className="mono" style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 1 }}>
         Today — {formatLong(now)}
       </div>
-      <div style={{ fontSize: 13, marginTop: 4 }}>{primary}</div>
+      <div className="fr-banner-detail" style={{ fontSize: 13, marginTop: 4 }}>{primary}</div>
       {scoutLine && <div style={{ fontSize: 11, marginTop: 4, opacity: 0.95 }}>{scoutLine}</div>}
     </div>
   );

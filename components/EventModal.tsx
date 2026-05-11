@@ -139,6 +139,7 @@ export function EventModal({ open, initial, adminKey, onClose, onSaved }: Props)
     >
       <div
         onClick={(e) => e.stopPropagation()}
+        className="fr-modal"
         style={{
           background: "var(--cream)",
           border: "1px solid var(--green)",
@@ -326,5 +327,5 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 function Row({ children }: { children: React.ReactNode }) {
-  return <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>{children}</div>;
+  return <div className="fr-modal-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>{children}</div>;
 }

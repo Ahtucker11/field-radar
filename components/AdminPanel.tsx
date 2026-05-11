@@ -32,18 +32,18 @@ export function AdminPanel({ adminKey, onSetKey, onScanNow, onAddEvent }: Props)
 
   return (
     <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-      <button onClick={() => (adminKey ? onAddEvent() : promptForKey())} style={btnPrimary}>
+      <button onClick={() => (adminKey ? onAddEvent() : promptForKey())} className="fr-admin-btn" style={btnPrimary}>
         + Add event
       </button>
-      <button onClick={handleScan} disabled={scanning} style={btnSecondary}>
+      <button onClick={handleScan} disabled={scanning} className="fr-admin-btn" style={btnSecondary}>
         {scanning ? "Scanning…" : "🔍 Scan now"}
       </button>
       {adminKey ? (
-        <button onClick={() => onSetKey(null)} style={btnGhost}>
+        <button onClick={() => onSetKey(null)} className="fr-admin-btn" style={btnGhost}>
           Clear admin key
         </button>
       ) : (
-        <button onClick={promptForKey} style={btnGhost}>
+        <button onClick={promptForKey} className="fr-admin-btn" style={btnGhost}>
           Enter admin key
         </button>
       )}
