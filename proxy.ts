@@ -8,7 +8,7 @@ function getIp(req: NextRequest): string {
   return req.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? "unknown";
 }
 
-export function middleware(req: NextRequest) {
+export function proxy(req: NextRequest) {
   if (req.nextUrl.pathname !== "/api/events/bulk") return NextResponse.next();
 
   const ip = getIp(req);
