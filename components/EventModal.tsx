@@ -6,24 +6,27 @@ import type { EventDb, EventCreate } from "@/lib/types";
 type Props = {
   open: boolean;
   initial?: EventDb | null;
+  defaultStartDate?: string;
   adminKey: string | null;
   onClose: () => void;
   onSaved: () => void;
 };
 
-const blank: EventCreate = {
-  name: "",
-  label: "",
-  start_date: new Date().toISOString().slice(0, 10),
-  end_date: "",
-  tier: "tier-2",
-  location: "loc-cin",
-  notes: "",
-  url: "",
-};
+function makeBlank(start?: string): EventCreate {
+  return {
+    name: "",
+    label: "",
+    start_date: start ?? new Date().toISOString().slice(0, 10),
+    end_date: "",
+    tier: "tier-2",
+    location: "loc-cin",
+    notes: "",
+    url: "",
+  };
+}
 
-export function EventModal({ open, initial, adminKey, onClose, onSaved }: Props) {
-  const [form, setForm] = useState<EventCreate>(blank);
+export function EventModal({ open, initial, defaultStartDate, adminKey, onClose, onSaved }: Props) {
+  const [form, setForm] = useState<EventCreate>(() => makeBlank(defaultStartDate));
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -41,11 +44,11 @@ export function EventModal({ open, initial, adminKey, onClose, onSaved }: Props)
               notes: initial.notes ?? "",
               url: initial.url ?? "",
             }
-          : blank,
+          : makeBlank(defaultStartDate),
       );
       setError(null);
     }
-  }, [open, initial]);
+  }, [open, initial, defaultStartDate]);
 
   if (!open) return null;
 

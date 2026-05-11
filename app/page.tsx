@@ -7,6 +7,7 @@ import { EventModal } from "@/components/EventModal";
 import { FilterBar, type Filters } from "@/components/FilterBar";
 import { TodayBanner } from "@/components/TodayBanner";
 import { AdminPanel } from "@/components/AdminPanel";
+import { DayPanel } from "@/components/DayPanel";
 
 const ADMIN_KEY_STORAGE = "field-radar-admin-key";
 
@@ -25,7 +26,9 @@ export default function HomePage() {
   const [adminKey, setAdminKey] = useState<string | null>(null);
   const [modalEvent, setModalEvent] = useState<EventDb | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [modalDefaultDate, setModalDefaultDate] = useState<string | undefined>(undefined);
   const [isMobile, setIsMobile] = useState(false);
+  const [dayPanelDate, setDayPanelDate] = useState<Date | null>(null);
 
   useEffect(() => {
     const stored = sessionStorage.getItem(ADMIN_KEY_STORAGE);
@@ -117,6 +120,35 @@ export default function HomePage() {
         isMobile={isMobile}
         onEventClick={(e) => {
           setModalEvent(e);
+          setModalDefaultDate(undefined);
+          setModalOpen(true);
+        }}
+        onDayClick={(d) => setDayPanelDate(d)}
+      />
+
+      <DayPanel
+        date={dayPanelDate}
+        events={events}
+        onClose={() => setDayPanelDate(null)}
+        onSelectEvent={(e) => {
+          setDayPanelDate(null);
+          setModalEvent(e);
+          setModalDefaultDate(undefined);
+          setModalOpen(true);
+        }}
+        onAddEvent={() => {
+          if (!adminKey) {
+            const k = prompt("Admin key:");
+            if (!k) return;
+            sessionStorage.setItem(ADMIN_KEY_STORAGE, k);
+            setAdminKey(k);
+          }
+          const iso = dayPanelDate
+            ? `${dayPanelDate.getFullYear()}-${String(dayPanelDate.getMonth() + 1).padStart(2, "0")}-${String(dayPanelDate.getDate()).padStart(2, "0")}`
+            : undefined;
+          setDayPanelDate(null);
+          setModalEvent(null);
+          setModalDefaultDate(iso);
           setModalOpen(true);
         }}
       />
@@ -124,6 +156,7 @@ export default function HomePage() {
       <EventModal
         open={modalOpen}
         initial={modalEvent}
+        defaultStartDate={modalDefaultDate}
         adminKey={adminKey}
         onClose={() => setModalOpen(false)}
         onSaved={refresh}

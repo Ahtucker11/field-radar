@@ -21,6 +21,7 @@ type Props = {
   events: EventDb[];
   filters: Filters;
   onEventClick: (event: EventDb) => void;
+  onDayClick?: (date: Date) => void;
   isMobile?: boolean;
 };
 
@@ -159,7 +160,7 @@ function layoutWeek(events: EventDb[], week: Week): LaidOutEvent[] {
   return result;
 }
 
-export function Calendar({ events, filters, onEventClick, isMobile = false }: Props) {
+export function Calendar({ events, filters, onEventClick, onDayClick, isMobile = false }: Props) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -191,6 +192,7 @@ export function Calendar({ events, filters, onEventClick, isMobile = false }: Pr
           filters={filters}
           today={today}
           onEventClick={onEventClick}
+          onDayClick={onDayClick}
           isMobile={isMobile}
         />
       ))}
@@ -205,6 +207,7 @@ function Month({
   filters,
   today,
   onEventClick,
+  onDayClick,
   isMobile,
 }: {
   year: number;
@@ -213,6 +216,7 @@ function Month({
   filters: Filters;
   today: Date;
   onEventClick: (event: EventDb) => void;
+  onDayClick?: (date: Date) => void;
   isMobile: boolean;
 }) {
   const firstDay = new Date(year, month, 1);
@@ -294,6 +298,8 @@ function Month({
           events={visibleEvents}
           today={today}
           onEventClick={onEventClick}
+          onDayClick={onDayClick}
+          isMobile={isMobile}
         />
       ))}
     </div>
@@ -306,12 +312,16 @@ function WeekRow({
   events,
   today,
   onEventClick,
+  onDayClick,
+  isMobile,
 }: {
   week: Week;
   numCols: number;
   events: EventDb[];
   today: Date;
   onEventClick: (event: EventDb) => void;
+  onDayClick?: (date: Date) => void;
+  isMobile: boolean;
 }) {
   const laidOut = layoutWeek(events, week);
   const laneCount = laidOut.reduce((max, le) => Math.max(max, le.lane + 1), 0);
@@ -366,36 +376,43 @@ function WeekRow({
       })}
 
       {/* Day numbers — row 1 of each column */}
-      {week.cells.map((cell, i) => (
-        <div
-          key={`num-${i}`}
-          className="fr-day"
-          style={{
-            gridColumn: i + 1,
-            gridRow: 1,
-            padding: "6px 5px",
-            position: "relative",
-            zIndex: 1,
-          }}
-        >
-          {cell.type === "day" && (
-            <div
-              className="mono fr-day-num"
-              style={{
-                fontSize: 11,
-                color: cell.date.getTime() === today.getTime() ? "#fff" : "var(--text-muted)",
-                background: cell.date.getTime() === today.getTime() ? "var(--orange)" : "transparent",
-                display: "inline-block",
-                padding: cell.date.getTime() === today.getTime() ? "2px 6px" : 0,
-                borderRadius: 3,
-                fontWeight: cell.date.getTime() === today.getTime() ? 700 : 400,
-              }}
-            >
-              {cell.dayNum}
-            </div>
-          )}
-        </div>
-      ))}
+      {week.cells.map((cell, i) => {
+        const tappable = isMobile && onDayClick && cell.type === "day";
+        const isCellToday = cell.type === "day" && cell.date.getTime() === today.getTime();
+        const dateForClick = cell.type === "day" ? cell.date : null;
+        return (
+          <div
+            key={`num-${i}`}
+            className="fr-day"
+            onClick={tappable && dateForClick ? () => onDayClick!(dateForClick) : undefined}
+            style={{
+              gridColumn: i + 1,
+              gridRow: 1,
+              padding: "6px 5px",
+              position: "relative",
+              zIndex: 1,
+              cursor: tappable ? "pointer" : "default",
+            }}
+          >
+            {cell.type === "day" && (
+              <div
+                className="mono fr-day-num"
+                style={{
+                  fontSize: 11,
+                  color: isCellToday ? "#fff" : "var(--text-muted)",
+                  background: isCellToday ? "var(--orange)" : "transparent",
+                  display: "inline-block",
+                  padding: isCellToday ? "2px 6px" : 0,
+                  borderRadius: 3,
+                  fontWeight: isCellToday ? 700 : 400,
+                }}
+              >
+                {cell.dayNum}
+              </div>
+            )}
+          </div>
+        );
+      })}
 
       {/* Event pills — rows 2..N+1 */}
       {laidOut.map((le) => {
