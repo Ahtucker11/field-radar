@@ -315,140 +315,118 @@ function WeekRow({
 }) {
   const laidOut = layoutWeek(events, week);
   const laneCount = laidOut.reduce((max, le) => Math.max(max, le.lane + 1), 0);
-  // Reserve at least 2 lanes worth of body height so empty weeks don't collapse
-  const minLanes = Math.max(laneCount, 2);
+
+  // Single grid per week: row 1 = day numbers, rows 2..N+1 = event lanes, row N+2 = small bottom pad.
+  // Empty weeks collapse to just the day-number strip.
+  const gridRows =
+    laneCount > 0
+      ? `28px repeat(${laneCount}, 20px) 6px`
+      : `28px`;
 
   return (
-    <div>
-      {/* Day-number strip */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: `repeat(${numCols}, 1fr)`,
-          gap: 1,
-          background: "var(--green)",
-          borderTop: "1px solid var(--green)",
-        }}
-      >
-        {week.cells.map((cell, i) => {
-          const isToday = cell.type === "day" && isSameDay(cell.date, today);
-          const isPast = cell.type === "day" && cell.date < today && !isToday;
-          const isWeekend = cell.type === "day" && (cell.dow === 0 || cell.dow === 6);
-          const bg =
-            cell.type === "empty"
-              ? "#f5f1e6"
-              : isToday
-                ? "#fff4e6"
-                : isWeekend
-                  ? "#fbf8f0"
-                  : "#fff";
-          return (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: `repeat(${numCols}, 1fr)`,
+        gridTemplateRows: gridRows,
+        columnGap: 1,
+        rowGap: 0,
+        background: "var(--green)",
+        borderTop: "1px solid var(--green)",
+      }}
+    >
+      {/* Cell backgrounds span all rows of the week (day strip + lanes) */}
+      {week.cells.map((cell, i) => {
+        const isToday = cell.type === "day" && isSameDay(cell.date, today);
+        const isPast = cell.type === "day" && cell.date < today && !isToday;
+        const isWeekend = cell.type === "day" && (cell.dow === 0 || cell.dow === 6);
+        const bg =
+          cell.type === "empty"
+            ? "#f5f1e6"
+            : isToday
+              ? "#fff4e6"
+              : isWeekend
+                ? "#fbf8f0"
+                : "#fff";
+        return (
+          <div
+            key={`bg-${i}`}
+            style={{
+              gridColumn: i + 1,
+              gridRow: "1 / -1",
+              background: bg,
+              boxShadow: isToday ? "inset 0 0 0 3px var(--orange)" : undefined,
+              opacity: isPast ? 0.55 : 1,
+            }}
+          />
+        );
+      })}
+
+      {/* Day numbers — row 1 of each column */}
+      {week.cells.map((cell, i) => (
+        <div
+          key={`num-${i}`}
+          className="fr-day"
+          style={{
+            gridColumn: i + 1,
+            gridRow: 1,
+            padding: "6px 5px",
+            position: "relative",
+            zIndex: 1,
+          }}
+        >
+          {cell.type === "day" && (
             <div
-              key={`hdr-${i}`}
-              className="fr-day"
+              className="mono fr-day-num"
               style={{
-                gridColumn: i + 1,
-                background: bg,
-                padding: "6px 5px",
-                minHeight: 28,
-                opacity: isPast ? 0.55 : 1,
+                fontSize: 11,
+                color: cell.date.getTime() === today.getTime() ? "#fff" : "var(--text-muted)",
+                background: cell.date.getTime() === today.getTime() ? "var(--orange)" : "transparent",
+                display: "inline-block",
+                padding: cell.date.getTime() === today.getTime() ? "2px 6px" : 0,
+                borderRadius: 3,
+                fontWeight: cell.date.getTime() === today.getTime() ? 700 : 400,
               }}
             >
-              {cell.type === "day" && (
-                <div
-                  className="mono fr-day-num"
-                  style={{
-                    fontSize: 11,
-                    color: isToday ? "#fff" : "var(--text-muted)",
-                    background: isToday ? "var(--orange)" : "transparent",
-                    display: "inline-block",
-                    padding: isToday ? "2px 6px" : 0,
-                    borderRadius: 3,
-                    fontWeight: isToday ? 700 : 400,
-                  }}
-                >
-                  {cell.dayNum}
-                </div>
-              )}
+              {cell.dayNum}
             </div>
-          );
-        })}
-      </div>
+          )}
+        </div>
+      ))}
 
-      {/* Event body — N-col grid with lanes */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: `repeat(${numCols}, 1fr)`,
-          gridAutoRows: "20px",
-          gridTemplateRows: `repeat(${minLanes}, 20px)`,
-          columnGap: 1,
-          rowGap: 2,
-          background: "var(--green)",
-          padding: "2px 0 6px 0",
-          position: "relative",
-        }}
-      >
-        {/* Background cells span all lane rows for today-highlight / weekend tint */}
-        {week.cells.map((cell, i) => {
-          const isToday = cell.type === "day" && isSameDay(cell.date, today);
-          const isPast = cell.type === "day" && cell.date < today && !isToday;
-          const isWeekend = cell.type === "day" && (cell.dow === 0 || cell.dow === 6);
-          const bg =
-            cell.type === "empty"
-              ? "#f5f1e6"
-              : isToday
-                ? "#fff4e6"
-                : isWeekend
-                  ? "#fbf8f0"
-                  : "#fff";
-          return (
-            <div
-              key={`bg-${i}`}
-              style={{
-                gridColumn: i + 1,
-                gridRow: `1 / span ${minLanes}`,
-                background: bg,
-                boxShadow: isToday ? "inset 0 0 0 3px var(--orange)" : undefined,
-                opacity: isPast ? 0.55 : 1,
-              }}
-            />
-          );
-        })}
-
-        {/* Event pills */}
-        {laidOut.map((le) => (
-          <button
-            key={`${le.event.id}-${week.id}`}
-            onClick={() => onEventClick(le.event)}
-            title={`${le.event.name}${le.event.notes ? "\n\n" + le.event.notes : ""}`}
-            className="fr-event-pill"
-            style={{
-              gridColumn: `${le.startCol} / span ${le.span}`,
-              gridRow: le.lane + 1,
-              margin: "0 3px",
-              fontSize: 10,
-              fontWeight: 600,
-              padding: "2px 6px",
-              borderRadius: 3,
-              color: "#fff",
-              background: TIER_BG[le.event.tier],
-              border: "none",
-              borderLeft: `3px ${le.event.source === "scout" && !le.event.confirmed ? "dashed" : "solid"} ${LOC_BORDER[le.event.location]}`,
-              cursor: "pointer",
-              textAlign: "left",
-              lineHeight: 1.25,
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              zIndex: 1,
-            }}
-          >
-            {le.event.source === "scout" && !le.event.confirmed ? "~ " : ""}
-            {le.event.label ?? le.event.name}
-          </button>
-        ))}
-      </div>
+      {/* Event pills — rows 2..N+1 */}
+      {laidOut.map((le) => (
+        <button
+          key={`${le.event.id}-${week.id}`}
+          onClick={() => onEventClick(le.event)}
+          title={`${le.event.name}${le.event.notes ? "\n\n" + le.event.notes : ""}`}
+          className="fr-event-pill"
+          style={{
+            gridColumn: `${le.startCol} / span ${le.span}`,
+            gridRow: le.lane + 2,
+            margin: "0 3px",
+            fontSize: 10,
+            fontWeight: 600,
+            padding: "2px 6px",
+            borderRadius: 3,
+            color: "#fff",
+            background: TIER_BG[le.event.tier],
+            border: "none",
+            borderLeft: `3px ${le.event.source === "scout" && !le.event.confirmed ? "dashed" : "solid"} ${LOC_BORDER[le.event.location]}`,
+            cursor: "pointer",
+            textAlign: "left",
+            lineHeight: 1.25,
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            position: "relative",
+            zIndex: 2,
+          }}
+        >
+          {le.event.source === "scout" && !le.event.confirmed ? "~ " : ""}
+          {le.event.label ?? le.event.name}
+        </button>
+      ))}
     </div>
   );
 }
