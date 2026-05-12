@@ -145,9 +145,9 @@ export function EventModal({ open, initial, defaultStartDate, adminKey, onClose,
     }
   }
 
-  async function dismiss() {
+  async function dismiss(promptText: string) {
     if (!initial || !adminKey) return;
-    if (!confirm("Dismiss this event?")) return;
+    if (!confirm(promptText)) return;
     setBusy(true);
     setError(null);
     try {
@@ -162,7 +162,7 @@ export function EventModal({ open, initial, defaultStartDate, adminKey, onClose,
       onSaved();
       onClose();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "dismiss failed");
+      setError(e instanceof Error ? e.message : "remove failed");
     } finally {
       setBusy(false);
     }
@@ -314,16 +314,20 @@ export function EventModal({ open, initial, defaultStartDate, adminKey, onClose,
 
             {error && <div style={{ color: "#a51c1c", fontSize: 12, marginBottom: 8 }}>{error}</div>}
 
-            <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>
-              <button onClick={dismiss} disabled={busy} style={dangerBtnStyle}>
-                Dismiss
-              </button>
-              {initial.source === "scout" && !initial.confirmed && (
+            {initial.source === "scout" && !initial.confirmed && (
+              <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                <button
+                  onClick={() => dismiss("Dismiss this scout-found event? Future scout runs will skip it.")}
+                  disabled={busy}
+                  style={dangerBtnStyle}
+                >
+                  Dismiss
+                </button>
                 <button onClick={confirmEvent} disabled={busy} style={primaryBtnStyle}>
                   {busy ? "…" : "Confirm"}
                 </button>
-              )}
-            </div>
+              </div>
+            )}
           </>
         )}
 
@@ -408,8 +412,12 @@ export function EventModal({ open, initial, defaultStartDate, adminKey, onClose,
 
             <div style={{ display: "flex", gap: 8, marginTop: 16, flexWrap: "wrap", justifyContent: "flex-end" }}>
               {initial && (
-                <button onClick={dismiss} disabled={busy} style={dangerBtnStyle}>
-                  Dismiss
+                <button
+                  onClick={() => dismiss("Delete this event? It can’t be undone from the UI.")}
+                  disabled={busy}
+                  style={dangerBtnStyle}
+                >
+                  Delete
                 </button>
               )}
               <button
